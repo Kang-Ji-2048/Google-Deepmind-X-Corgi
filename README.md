@@ -8,11 +8,11 @@ Last updated: 2026-09-17
 
 | Workstream | Owner | Status |
 | --- | --- | --- |
-| Responsive product shell and user flow | This repo | In progress |
-| Visual system and screen specification | Parallel design track | In progress |
-| Online recipe discovery and ranking | Recipe search module | Complete — integration-ready with deterministic demo data |
+| Responsive product shell and user flow | This repo | Next.js scaffold ready |
+| Visual system and screen specification | Parallel design track | Initial cobalt landing page complete |
+| Online recipe discovery and ranking | Recipe search module | Complete - integration-ready with deterministic demo data |
 | Gemma image and ingredient extraction | External integration owner | External dependency |
-| Vercel hosting and deployment readiness | This repo | Contract and runbook ready; app scaffold pending |
+| Vercel hosting and deployment readiness | This repo | Contract and runbook ready; scaffold integrated |
 | End-to-end integration and QA | This repo | Pending |
 
 ## Task coordination
@@ -231,28 +231,66 @@ recipe instructions.
 
 ## Local development
 
-The recipe-search workstream is a dependency-light TypeScript module and requires
-Node.js 22.6 or newer (Node.js 24 recommended). While the application scaffold is
-still landing, its tests run directly with Node's built-in TypeScript support:
+Requirements: Node.js 24.x and npm.
 
 ```bash
+npm install
+npm run dev
 npm test
 ```
 
-There are no install-time package dependencies for the recipe-search module.
+Open `http://localhost:3000`.
 
-Copy [`.env.example`](.env.example) to `.env.local` after the scaffold lands and fill in the server-only integration values. Never commit `.env.local`.
+Verification commands:
+
+```bash
+npm run typecheck
+npm run build
+npm test
+```
+
+Copy [`.env.example`](.env.example) to `.env.local` and fill in the server-only integration values. Never commit `.env.local`.
 
 ## Hosting
 
 Vercel is the target host. The scaffold-independent deployment contract, environment matrix, image-upload limits, privacy rules, health-check contract, domain steps, and release checklist are in [`docs/deployment.md`](docs/deployment.md).
 
-Hosting status: **configuration contract ready; not yet deployable**. The recipe-search package has landed, but the Next.js application scaffold is still being integrated, so no Vercel project has been imported and no app build can be validated yet.
+Hosting status: **configuration contract and Next.js scaffold ready; deployment not started**. No Vercel project has been imported yet.
 
-Exact next actions after the application scaffold lands:
+Exact next actions:
 
 1. Confirm the Next.js 16 App Router scaffold's `npm run build` succeeds locally and that `package.json` pins Node.js `24.x` in `engines` (or documents another intentionally selected Vercel-supported major).
 2. Implement the server-only provider adapters using the variable names in `.env.example`; do not expose provider keys through `NEXT_PUBLIC_*` variables.
 3. Implement `GET /api/health` and enforce the documented upload limits before invoking Gemma.
 4. Import the Git repository into Vercel with the framework preset set to Next.js and the repository root as the Root Directory.
 5. Configure separate Preview and Production secrets, deploy Preview, run the predeploy checklist, and only then promote to Production.
+
+## Visual workstream status
+
+The initial responsive landing page is implemented in Next.js 16 with React 19, TypeScript, Tailwind v4, native CSS tokens, and self-hosted variable fonts.
+
+Implemented:
+
+- Responsive desktop and phone landing page at `/`.
+- Original generated refrigerator and meal photography in `public/images/`.
+- Cobalt editorial-grocery visual system with automatic dark-mode tokens.
+- Accessible 1-5 image selection with format and 4 MB combined-size validation.
+- Reusable loading, empty, and error-state primitives.
+- Concise technical flow covering photo intake, Gemma analysis, inventory confirmation, and source-backed recipe ranking.
+- Reduced-motion support, keyboard focus styles, responsive image sizing, and mobile-specific layout fallbacks.
+
+Primary files:
+
+- `app/page.tsx` - landing-page structure and technical explainer.
+- `components/PhotoInput.tsx` - client-side image selection and validation UI.
+- `components/StatusPanel.tsx` - loading, empty, and error states.
+- `components/StateShowcase.tsx` - interactive state preview.
+- `src/styles.css` - visual tokens, responsive layout, dark mode, and motion treatment.
+- `public/images/` - project-local generated photography.
+
+Handoff notes:
+
+- The scan button is intentionally presentation-only in this workstream. Connect it to the server adapter without changing the visual primitive.
+- Private user uploads must remain on the normal `<input type="file">` path. Do not route them through `next/image`.
+- Keep multipart requests under 4.0 MB. The current selector rejects larger combined selections before submission.
+- The technical section reflects the shared `PantryAnalysis` boundary and recipe-search contract but contains no Gemma or recipe provider logic.
