@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useReducer, useRef, useState } from "react";
 import { ArrowSquareOut, Camera, ImageSquare, Plus, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CameraCapture } from "./CameraCapture";
+import { CUISINE_OPTIONS, COOKING_TIME_OPTIONS, initialPhotoPreferences, photoPreferencesReducer } from "./photoPreferencesModel";
 import "@/src/camera.css";
 
 const MAX_FILES = 5;
@@ -19,7 +20,13 @@ export function PhotoInput() {
   const closeCamera = useCallback(() => setCameraOpen(false), []);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
-  const [showDemo, setShowDemo] = useState(false);
+  const [preferences, updatePreferences] = useReducer(photoPreferencesReducer, initialPhotoPreferences);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const preferencesHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (preferences.showRecipe) resultHeadingRef.current?.focus();
+  }, [preferences.showRecipe]);
 
   function addFiles(fileList: FileList | File[] | null): boolean {
     const incoming = Array.from(fileList ?? []);
@@ -41,7 +48,7 @@ export function PhotoInput() {
 
     filesRef.current = [...current, ...accepted];
     setFiles(filesRef.current);
-    setShowDemo(true);
+    updatePreferences({ type: "photos-changed" });
     setError(incoming.length > room ? "You can add up to five photos." : "");
     return true;
   }
@@ -49,7 +56,7 @@ export function PhotoInput() {
   function removeFile(index: number) {
     filesRef.current = filesRef.current.filter((_, itemIndex) => itemIndex !== index);
     setFiles(filesRef.current);
-    setShowDemo(filesRef.current.length > 0);
+    updatePreferences({ type: "photos-changed" });
     setError("");
   }
 
@@ -108,13 +115,41 @@ export function PhotoInput() {
                   </li>
                 ))}
               </ul>
-              {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
-                <h3 id={`${inputId}-demo-title`}>Roasted vegetables</h3>
+              {!preferences.showRecipe ? <form className="photo-preferences" onSubmit={(event) => {
+                event.preventDefault();
+                updatePreferences({ type: "done" });
+              }}>
+                <h3 ref={preferencesHeadingRef} tabIndex={-1}>What are you in the mood for?</h3>
+                <fieldset>
+                  <legend>Cuisine type</legend>
+                  <div className="photo-preference-options">
+                    {CUISINE_OPTIONS.map((cuisine) => <label className="photo-preference-option" key={cuisine}>
+                      <input className="visually-hidden" type="radio" name={`${inputId}-cuisine`} value={cuisine} checked={preferences.cuisine === cuisine} onChange={() => updatePreferences({ type: "cuisine", value: cuisine })} />
+                      <span>{cuisine}</span>
+                    </label>)}
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend>Cooking time</legend>
+                  <div className="photo-preference-options">
+                    {COOKING_TIME_OPTIONS.map((time) => <label className="photo-preference-option" key={time}>
+                      <input className="visually-hidden" type="radio" name={`${inputId}-time`} value={time} checked={preferences.cookingTime === time} onChange={() => updatePreferences({ type: "time", value: time })} />
+                      <span>{time}</span>
+                    </label>)}
+                  </div>
+                </fieldset>
+                <button className="button button-primary button-full" type="submit">Done</button>
+              </form> : <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
+                <h3 ref={resultHeadingRef} tabIndex={-1} id={`${inputId}-demo-title`}>Roasted vegetables</h3>
                 <p>Good Food Middle East</p>
                 <a className="button button-primary button-full" href="https://www.bbcgoodfoodme.com/recipes/roasted-vegetables/" target="_blank" rel="noopener noreferrer">
                   View recipe <ArrowSquareOut size={18} aria-hidden="true" />
                   <span className="visually-hidden"> (opens in a new tab)</span>
                 </a>
+                <button className="photo-change-preferences" type="button" onClick={() => {
+                  updatePreferences({ type: "edit" });
+                  requestAnimationFrame(() => preferencesHeadingRef.current?.focus());
+                }}>Change preferences</button>
               </section>}
             </div>
           )}
