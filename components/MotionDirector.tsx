@@ -31,12 +31,6 @@ export function MotionDirector() {
       gsap.fromTo(image, { scale: 0.86, opacity: 0.45 }, { scale: 1, opacity: 1, ease: "none", scrollTrigger: { trigger: element, start: "top 95%", end: "center 55%", scrub: 1 } });
     });
 
-    const cards = gsap.utils.toArray<HTMLElement>(".story-card");
-    cards.forEach((card, index) => {
-      if (index === cards.length - 1) return;
-      gsap.to(card, { scale: 0.92 + index * 0.025, opacity: 0.34 + index * 0.18, ease: "none", scrollTrigger: { trigger: cards[index + 1], start: "top 78%", end: "top 22%", scrub: 1 } });
-    });
-
     return () => ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
   });
 

@@ -1,17 +1,12 @@
 import Image from "next/image";
-import { ArrowRight, Check, Eye, ForkKnife, ListChecks, LockKey, Scan, SlidersHorizontal } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Check, Eye, ForkKnife, LockKey, SlidersHorizontal } from "@phosphor-icons/react/dist/ssr";
 import { BrandMark } from "@/components/BrandMark";
 import { MotionDirector } from "@/components/MotionDirector";
 import { PhotoInput } from "@/components/PhotoInput";
 import { StateShowcase } from "@/components/StateShowcase";
+import { KitchenWalkthrough } from "@/components/KitchenWalkthrough";
 import fridgeImage from "@/public/images/open-fridge.png";
 import mealImage from "@/public/images/weeknight-bowl.png";
-
-const steps = [
-  { icon: Scan, title: "Photograph what you have", body: "Add up to five clear views. More angles help separate duplicates from genuinely different ingredients." },
-  { icon: ListChecks, title: "Make the inventory yours", body: "Confirm, rename, or remove every item before it can shape a recommendation." },
-  { icon: ForkKnife, title: "Choose from real recipes", body: "Compare feasible dishes, then continue to the original publisher for the full recipe." },
-];
 
 const technicalSteps = [
   { icon: LockKey, title: "Private photo intake", body: "The browser validates 1-5 images and keeps the multipart request below 4 MB." },
@@ -86,17 +81,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section story-section" id="how-it-works">
-          <div className="story-heading" data-reveal><h2>From open door to dinner.</h2><p>Three deliberate handoffs keep the process useful, legible, and yours.</p></div>
-          <ol className="story-list">
-            {steps.map(({ icon: Icon, title, body }, index) => (
-              <li className="story-card" key={title} style={{ "--stack-index": index } as React.CSSProperties}>
-                <div className="story-card-index">0{index + 1}</div><Icon size={42} weight="light" aria-hidden="true" />
-                <div><h3>{title}</h3><p>{body}</p></div>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <KitchenWalkthrough />
 
         <section className="meal-story" data-image-scale>
           <Image src={mealImage} alt="A colorful grain bowl with roasted vegetables, greens, avocado, and eggs on a cobalt plate" sizes="100vw" />
