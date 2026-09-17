@@ -1,0 +1,23 @@
+/* Camera UI uses the existing landing tokens; native dialog is the top layer. */
+.photo-input-empty { grid-template-columns: auto 1fr; }
+.photo-intake-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.photo-intake-actions .button { flex: 1; font-size: 14px; }
+.photo-upload-button { padding-inline: 16px; color: var(--mint); border-color: var(--line); background: transparent; }
+.photo-add-actions { display: flex; gap: 8px; }
+.photo-add-actions .icon-button { flex: none; }
+.photo-manual-link { display: inline-flex; margin-top: 12px; color: var(--mint); font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+.button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.photo-capture-dialog { position: fixed; inset: 0; width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; padding: 22px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); color: var(--white); background: var(--surface); }
+.photo-capture-dialog::backdrop { background: rgba(0, 15, 12, .84); }
+.photo-capture-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 18px; }
+.photo-capture-heading h2 { margin: 0; font-size: 24px; line-height: 1.1; }
+.photo-capture-heading p { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.photo-capture-heading .icon-button { flex: none; }
+.photo-capture-video { display: block; width: 100%; max-height: 55dvh; min-height: 160px; aspect-ratio: 4 / 3; object-fit: contain; border-radius: var(--radius); background: var(--bg); }
+.photo-capture-dialog .field-message { margin: 14px 0; font-family: var(--font-body), sans-serif; font-size: 14px; line-height: 1.5; }
+.photo-capture-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.photo-capture-actions .button { padding-inline: 18px; }
+@media (max-width: 480px) {
+  .photo-capture-dialog { padding: 16px; }
+  .photo-intake-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+}

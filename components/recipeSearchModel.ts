@@ -1,4 +1,4 @@
-import type { ConfirmedIngredient, RankedRecipe } from "@/src/recipes/types";
+import type { ConfirmedIngredient, RankedRecipe, RecipeProviderAttribution } from "@/src/recipes/types";
 
 export interface EditableIngredient {
   id: string;
@@ -36,6 +36,7 @@ export interface RecipeSearchResponse {
   recipes: RankedRecipe[];
   rejected: Array<{ sourceUrl: string; name?: string; reasons: string[] }>;
   provider: string;
+  attribution?: RecipeProviderAttribution;
 }
 
 export function splitList(value: string): string[] {

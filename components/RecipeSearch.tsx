@@ -13,7 +13,8 @@ import {
   WarningCircle,
   X
 } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { GroundingAttribution } from "./GroundingAttribution";
 import type { RecommendationBadge, RankedRecipe } from "@/src/recipes/types";
 import {
   buildRecipeSearchRequest,
@@ -97,6 +98,7 @@ function RecipeCard({ recipe, rank }: { recipe: RankedRecipe; rank: number }) {
               : "Rating unknown"}
           </span>
           <span><ForkKnife size={17} aria-hidden="true" />{recipe.score}% match score</span>
+          <span>{recipe.cuisines?.length ? recipe.cuisines.join(", ") : "Cuisine not listed by source"}</span>
         </div>
         <div className="recipe-ingredient-fit">
           <div>
@@ -129,9 +131,17 @@ export function RecipeSearch() {
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const ingredientCounter = useRef(initialIngredients.length);
+  useEffect(() => () => {
+    const controller = abortRef.current;
+    abortRef.current = null;
+    controller?.abort();
+  }, []);
 
   function clearStaleResult() {
-    if (searchState !== "loading") setSearchState("idle");
+    const controller = abortRef.current;
+    abortRef.current = null;
+    controller?.abort();
+    setSearchState("idle");
     setResult(null);
     setError("");
   }
@@ -168,6 +178,7 @@ export function RecipeSearch() {
   }
 
   async function runSearch(request?: RecipeSearchRequest) {
+    if (abortRef.current) return;
     const payload = request ?? buildRecipeSearchRequest(ingredients, filters);
     if (!payload.ingredients.length) {
       setError("Add at least one confirmed ingredient before searching.");
@@ -189,6 +200,7 @@ export function RecipeSearch() {
         signal: controller.signal
       });
       const data: unknown = await response.json().catch(() => null);
+      if (abortRef.current !== controller || controller.signal.aborted) return;
       if (!response.ok) {
         const envelope = data as { error?: { message?: string } } | null;
         throw new Error(envelope?.error?.message || "Recipe search failed. Please try again.");
@@ -197,6 +209,7 @@ export function RecipeSearch() {
       setResult(data);
       setSearchState("success");
     } catch (caught) {
+      if (abortRef.current !== controller) return;
       if (controller.signal.aborted) {
         setSearchState("cancelled");
         return;
@@ -209,7 +222,10 @@ export function RecipeSearch() {
   }
 
   function cancelSearch() {
-    abortRef.current?.abort();
+    const controller = abortRef.current;
+    abortRef.current = null;
+    controller?.abort();
+    setSearchState("cancelled");
   }
 
   const currentRequest = buildRecipeSearchRequest(ingredients, filters);
@@ -238,6 +254,7 @@ export function RecipeSearch() {
               </button>
             ))}
           </div>
+          <p className="manual-note">Cuisine prioritizes discovery; source cuisine labels may be missing. No selection searches all cuisines.</p>
         </fieldset>
 
         <fieldset className="filter-group">
@@ -273,7 +290,7 @@ export function RecipeSearch() {
         <div className="filter-group field-stack">
           <label htmlFor="allergies">Allergies <span>Safety limit</span></label>
           <input id="allergies" value={filters.allergies} onChange={(event) => updateFilter("allergies", event.target.value)} placeholder="e.g. peanuts, shellfish" />
-          <p>Recipes containing these ingredients are excluded, not just ranked lower.</p>
+          <p>Known ingredient conflicts are excluded. Always check the source and food labels: this is not an allergy-safety guarantee.</p>
         </div>
 
         <div className="filter-split">
@@ -326,7 +343,7 @@ export function RecipeSearch() {
               </div>
             ))}
           </div>
-          <button className="add-ingredient" type="button" onClick={addIngredient}><Plus size={16} weight="bold" />Add another ingredient</button>
+          <button className="add-ingredient" type="button" onClick={addIngredient} disabled={ingredients.length >= 50}><Plus size={16} weight="bold" />Add another ingredient</button>
 
           <div className="search-action-row">
             <div><strong>{currentRequest.ingredients.length}</strong><span> confirmed ingredient{currentRequest.ingredients.length === 1 ? "" : "s"}</span></div>
@@ -352,7 +369,7 @@ export function RecipeSearch() {
             <div className="results-loading">
               <SpinnerGap size={30} className="spin" aria-hidden="true" />
               <h2 id="results-heading">Searching original recipe sources…</h2>
-              <p>Checking ingredient fit, hard safety limits, time, and missing items.</p>
+              <p>Checking ingredient matches, dietary conflicts, time, and missing items.</p>
               <div className="recipe-skeletons" aria-hidden="true"><span /><span /><span /></div>
             </div>
           )}
@@ -382,10 +399,14 @@ export function RecipeSearch() {
                 <div><p className="recipe-step-label">03 · Live results</p><h2 id="results-heading">{result.recipes.length} validated recipe{result.recipes.length === 1 ? "" : "s"} found.</h2></div>
                 <p>Source: <strong>{result.provider}</strong></p>
               </div>
-              {result.rejected.length > 0 && <p className="safety-summary"><WarningCircle size={16} />{result.rejected.length} unsafe or incompatible result{result.rejected.length === 1 ? " was" : "s were"} excluded by your limits.</p>}
+              {result.rejected.length > 0 && <p className="safety-summary"><WarningCircle size={16} />{result.rejected.length} result{result.rejected.length === 1 ? " was" : "s were"} excluded by your filters.</p>}
               <div className="recipe-card-list">{result.recipes.map((recipe, index) => <RecipeCard key={recipe.id || recipe.sourceUrl} recipe={recipe} rank={index + 1} />)}</div>
             </>
           )}
+          {searchState === "success" && result && <>
+            <p className="manual-note">Check quantities, equipment, allergens, and the full recipe on the publisher’s page before cooking. Matches are ingredient-name estimates.</p>
+            <GroundingAttribution attribution={result.attribution} />
+          </>}
         </section>
       </main>
     </div>

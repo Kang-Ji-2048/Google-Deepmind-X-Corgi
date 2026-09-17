@@ -8,50 +8,51 @@ Turn fridge or pantry photos into an editable inventory, then find real, highly 
 
 ## Where we are now
 
-Status checked against GitHub main at `ce34aa2` on 2026-09-17. This is the initial scaffold, ready for collaborators to build against. Subsequent documentation commits clarify this baseline.
+Integration update: 2026-09-17. The initial scaffold, green/mint design, camera intake, cuisine-first recipe UI and Google-backed search implementation are integrated. Live Google compatibility checks are in progress; the key is stored only in ignored local configuration.
 
 | Area | Implemented on main | Still needed |
 | --- | --- | --- |
-| Landing page | Responsive page, food photography, technical explainer, reusable loading/empty/error visuals | PeakPath redesign is underway in the visual task |
-| Photo selection | Add/remove 1-5 files, drag-and-drop, MIME and combined file-size checks in `components/PhotoInput.tsx` | Phone capture refinements, compression/conversion, submit handler, actual API request |
+| Landing page | PeakPath green/mint design, responsive food photography, animated fridge logo, compact interactive walkthrough | Final cross-device QA |
+| Photo selection | Open camera preview/capture or choose photos; add/remove 1-5 files, MIME/4 MB checks; capture JPEG resized to 1600px | Real-phone checks, uploaded-file compression/HEIC conversion, Gemma submit |
 | Gemma | Documented `PantryAnalysis` contract and reserved environment names | External service/adapter, runtime response validation, live inference |
-| Inventory and preferences | Flow and data boundaries documented | Editable confirmation screen, constraints form, state shared between screens |
-| Recipe matching | Schema.org normalization, source deduplication, ingredient matching, basic diet/allergy rules, weighted ranking, five badges; 9 tests pass | Real web discovery provider, strict feasibility filtering, results UI and server route |
-| Hosting | Environment example, Git ignore rules, Vercel runbook; Node 24 pinned | Environment wiring, health endpoint, Vercel import/deployment and device checks |
+| Inventory and preferences | `/recipes` supports editable manual ingredients, cuisine first, time, diet, allergies, staples, missing items and advanced equipment | Gemma response confirmation and state handoff |
+| Recipe matching | Google Search grounding provider, safe publisher retrieval, JSON-LD normalization, strict selected time/equipment/missing limits, ranking/badges, `/api/recipes`, full returned results UI | Live model/quota compatibility checks and relevance tuning |
+| Hosting | Server env wiring for recipe search, Vercel runbook, Node 24 | Vercel secrets/import/deployment, health endpoint and device checks |
 
-The **Scan my kitchen** button currently has no submit handler. No `/api/analyze`, `/api/recipes`, or `/api/health` endpoint exists yet. `/inventory`, `/preferences`, and `/recipes` are planned routes, not shipped pages. The loading/error showcase is a UI demonstration, not a live analysis.
+The **Scan my kitchen** button is explicitly disabled until Gemma is connected. Use **Enter ingredients and find recipes** to open `/recipes`. No `/api/analyze` or `/api/health` endpoint exists yet. `/inventory` and `/preferences` remain planned; preference controls already work on `/recipes`. Landing walkthrough/loading examples are labelled demonstrations, not inference.
 
-`FixtureRecipeProvider` returns invented development recipes, ratings, and `recipes.example` links. No live recipe search or Gemma mock adapter is currently connected to the UI. Reserved environment variables do not yet activate those integrations.
+`/api/recipes` calls Google Search grounding through a Gemini model for **discovery only**, then retrieves original publisher pages for recipe facts and ratings. It never trusts model prose for those facts and never falls back to `FixtureRecipeProvider`. Fixtures are development/test-only. Missing credentials produce a clear 503; upstream failures and timeouts are separate errors. Gemma remains the separate image-recognition integration, not replaced by Gemini.
 
-Verification completed for the scaffold: `npm ci`, `npm run build`, `npm run typecheck`, and all 9 recipe tests passed. This verifies the scaffold and library, not the finished scan-to-recipe journey.
+Current verification: 27 automated tests, production build and typecheck pass. This does not yet verify real phone cameras, the external Gemma service, or a Vercel deployment.
 
 ## What we are building now
 
 | Owner | Current responsibility | Next handoff |
 | --- | --- | --- |
-| Our visual task | Second visual pass using PeakPath dark green/mint colours and improved motion; original cobalt baseline preserved in Git | Separate visual commit for main to integrate |
-| Our main integration task | Shared contract and README; product screens, server routes, and recipe library connections | Complete demo flow, then connection to the collaborator's Gemma endpoint |
-| Our recipe task | Ranking library delivered; available for integration support | Live provider and remaining feasibility rules still need implementation on our side |
+| Our visual task | Landing/redesign/logo delivered | Standalone Gemma inventory confirmation UI |
+| Our main integration task | Camera, validated search route, Google credentials/smoke tests, contracts/README and Git integration | Verified live search, then external Gemma connection |
+| Our recipe task | Google provider, ranking, SSRF defenses and shared 45s deadline delivered | Live-search compatibility/relevance support |
+| Our cuisine/filter task | Cuisine-first manual inventory/preferences/results UI delivered | Mobile and interaction QA |
 | Our hosting task | Vercel runbook delivered; available for deployment checks | Deployment once the app and services are wired |
 | External Gemma collaborator | Model setup, preprocessing, ingredient extraction, structured response and fixtures | Callable service or adapter satisfying [the Gemma handoff](docs/gemma-integration.md) |
 
 Our remaining build sequence:
 
-1. Finish the visual pass and build inventory confirmation plus preferences.
+1. Complete live Google search verification and integrate inventory confirmation.
 2. Wire photo selection to a same-origin analysis route, including compression, progress, cancellation, and retry.
-3. Connect a real recipe discovery provider; enforce feasibility rules and display every eligible candidate returned by that search.
-4. Wire recipe results and original publisher links.
-5. Replace explicitly labelled development analysis fixtures with the collaborator's Gemma service.
+3. Tune recipe discovery relevance and retain every eligible candidate returned by the bounded search.
+4. Connect confirmed Gemma ingredients to the existing cuisine/preferences and recipe result screens.
+5. Validate the collaborator's real Gemma service against the agreed contract.
 6. Test the complete journey on Mac and a real phone, then deploy on Vercel.
 
 The visual and product work can progress while Gemma is being implemented. A future demo adapter must be explicitly labelled; fixture success must not be presented as real image recognition or live web search.
 
 ## Final MVP experience
 
-1. On a phone, capture several fridge or pantry views. On a Mac, upload photos. Start with 1-5 still images; continuous video is outside the first release.
+1. Open the camera or upload photos on a phone or Mac. Capture 1-5 still views; continuous video analysis is outside the first release.
 2. Gemma detects ingredients, reads visible labels, combines repeated views, and marks uncertain items.
 3. The user confirms, edits, adds, or removes ingredients and optionally marks items to use soon. Only the confirmed inventory goes into recipe matching.
-4. The user sets dietary preferences, allergies, maximum time, equipment, permitted pantry staples, and a missing-ingredient allowance.
+4. The user chooses cuisine first, then dietary preferences, allergies, maximum time, equipment, permitted pantry staples, and a missing-ingredient allowance.
 5. The website searches real recipe sources, compares their required ingredients with the confirmed inventory, and shows all validated candidates found in that search. Recommendations are highlighted within the full list.
 6. Each result shows the publisher, original link, source rating and review count when available, cooking time, ingredients available/missing, and why it fits. Clicking opens the original recipe.
 
@@ -67,8 +68,8 @@ Browser photos
   -> collaborator's Gemma service or server adapter
   -> PantryAnalysis JSON
   -> our editable inventory + preferences
-  -> our POST /api/recipes (planned server route)
-  -> live RecipeProvider (to implement)
+  -> our POST /api/recipes (implemented; manual input works today)
+  -> Google Search grounding + safe publisher-page fetch (implemented)
   -> RecipeSearchService (implemented library)
   -> all eligible recipe cards + original publisher links
 ```
@@ -118,18 +119,21 @@ const result = await service.search({
 
 Current scoring weights: 35% pantry ingredient coverage, 25% source rating confidence, 20% missing-ingredient fit, 10% time/equipment fit, and 10% use-soon coverage.
 
-**Current limitations before claiming a recipe is doable:** time/equipment affect ranking rather than strict exclusion; there is no maximum-missing-ingredient filter, pagination, or quantity sufficiency check. Basic keyword dietary/allergy filters are incomplete and do not establish certification or cross-contamination safety. Ingredient matching is heuristic, not model-powered. These gaps belong to our recipe integration work, not the Gemma image endpoint.
+**Current limitations before claiming a recipe is doable:** cuisine guides discovery and source cuisine labels can be unknown. Selecting time/equipment makes those strict (unknown metadata is excluded); the missing-ingredient cap is enforced. Search retrieves at most ten grounded candidate pages; there is no pagination or quantity sufficiency check. Basic keyword diet/allergy checks are incomplete and do not establish certification or cross-contamination safety. Users must check the publisher recipe and food labels. Matching is heuristic, not Gemma-powered.
 
 ## Files and development
 
 | Path | Purpose |
 | --- | --- |
 | `app/page.tsx`, `app/layout.tsx` | Landing page and Next.js shell |
-| `components/PhotoInput.tsx` | Photo selector; future submit connection |
+| `components/PhotoInput.tsx`, `components/CameraCapture.tsx`, `src/camera.css` | Upload/camera capture; Gemma submit pending |
+| `app/recipes/page.tsx`, `components/RecipeSearch.tsx`, `src/recipe-ui.css` | Manual inventory, cuisine/preferences and results |
+| `app/api/recipes/route.ts`, `src/recipe-http.ts`, `src/search-input.ts` | Server-only live search, bounded JSON and input validation |
+| `components/GroundingAttribution.tsx` | Sandboxed Google Search suggestions and source links |
 | `components/StatusPanel.tsx`, `components/StateShowcase.tsx` | Reusable states and demo showcase |
 | `src/styles.css`, `public/images/` | Visual system and generated landing assets |
 | `src/recipes/`, `test/recipes.test.ts` | Matching/ranking library, fixtures, and tests |
-| `.env.example` | Reserved server configuration; placeholders only |
+| `.env.example` | Recipe configuration and reserved Gemma settings; never real secrets |
 | `docs/gemma-integration.md` | Gemma collaborator's contract and checklist |
 | `docs/deployment.md` | Vercel setup, upload limits, and release checks |
 
@@ -149,7 +153,7 @@ npm run build
 npm run typecheck
 ```
 
-Copy `.env.example` to `.env.local` when connecting services. Keep credentials server-only and never commit `.env.local`. The file contains placeholders and future mock flags, not working integrations.
+Copy `.env.example` to `.env.local` when connecting services. Configure `RECIPE_SEARCH_API_KEY` with a Google AI Studio key and choose an available search-capable `RECIPE_SEARCH_MODEL`. Keep credentials server-only and never commit `.env.local`. Local secrets are not propagated to separate worktrees or Vercel; configure those securely and separately. Mock flags are reserved and do not switch `/api/recipes` to fixtures.
 
 ## Keeping collaborators in sync
 
