@@ -41,7 +41,7 @@ export function PhotoInput() {
 
     filesRef.current = [...current, ...accepted];
     setFiles(filesRef.current);
-    setShowDemo(false);
+    setShowDemo(true);
     setError(incoming.length > room ? "You can add up to five photos." : "");
     return true;
   }
@@ -49,7 +49,7 @@ export function PhotoInput() {
   function removeFile(index: number) {
     filesRef.current = filesRef.current.filter((_, itemIndex) => itemIndex !== index);
     setFiles(filesRef.current);
-    setShowDemo(false);
+    setShowDemo(filesRef.current.length > 0);
     setError("");
   }
 
@@ -84,7 +84,7 @@ export function PhotoInput() {
                   Open camera <span className="button-icon"><Camera size={18} weight="bold" /></span>
                 </button>
                 <button className="button photo-upload-button" type="button" onClick={() => inputRef.current?.click()}>
-                  Choose photos <ImageSquare size={18} />
+                  Choose photo <ImageSquare size={18} />
                 </button>
               </div>
             </div>
@@ -108,7 +108,7 @@ export function PhotoInput() {
                   </li>
                 ))}
               </ul>
-              <button className="button button-primary button-full" type="button" onClick={() => setShowDemo(true)} aria-describedby={`${inputId}-analysis-status`}>Find a recipe</button>
+              {!showDemo && <button className="button button-primary button-full" type="button" onClick={() => setShowDemo(true)} aria-describedby={`${inputId}-analysis-status`}>Find a recipe</button>}
               <p id={`${inputId}-analysis-status`}>Demo mode · Photos stay on your device.</p>
               {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
                 <span className="photo-demo-label">Demo</span>
