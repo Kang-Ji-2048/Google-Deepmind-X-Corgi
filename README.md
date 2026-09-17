@@ -10,7 +10,7 @@ Last updated: 2026-09-17
 | --- | --- | --- |
 | Responsive product shell and user flow | This repo | In progress |
 | Visual system and screen specification | Parallel design track | In progress |
-| Online recipe discovery and ranking | Parallel search track | In progress |
+| Online recipe discovery and ranking | Recipe search module | Complete — integration-ready with deterministic demo data |
 | Gemma image and ingredient extraction | External integration owner | External dependency |
 | Vercel hosting and deployment readiness | This repo | Contract and runbook ready; app scaffold pending |
 | End-to-end integration and QA | This repo | Pending |
@@ -132,6 +132,96 @@ Candidates are hard-filtered for allergies and dietary restrictions, then ranked
 | Time and equipment fit | 10% |
 | Use-soon ingredient coverage | 10% |
 
+### Recipe search integration API
+
+The public entry point is `src/recipes/index.ts`. The service accepts only the
+ingredients a user has confirmed; image analysis and Gemma integration remain
+outside this module.
+
+```ts
+import {
+  FixtureRecipeProvider,
+  RecipeSearchService,
+  type RecipeProvider
+} from "./src/recipes/index.ts";
+
+const provider: RecipeProvider = new FixtureRecipeProvider();
+const search = new RecipeSearchService(provider);
+
+const result = await search.search({
+  ingredients: [
+    { name: "tomatoes", quantity: "4" },
+    { name: "chickpeas", useSoon: true }
+  ],
+  constraints: {
+    allergies: ["tree nut"],
+    dietaryRestrictions: ["vegan"],
+    maxTotalTimeMinutes: 30,
+    availableEquipment: ["saucepan"],
+    pantryStaples: ["olive oil", "salt"]
+  },
+  locale: "en-GB"
+});
+```
+
+`result.recipes` is score-sorted and contains normalized recipe metadata,
+the original `sourceUrl`, matched and missing ingredients, a score breakdown,
+and recommendation badges. `result.rejected` contains safety-filtered candidates
+and machine-readable reasons such as `allergy:dairy` or `diet:vegan`; rejected
+recipes must never be rendered as recommendations.
+
+To connect a live search source, implement `RecipeProvider.search(query)` and
+return one `RecipeSourceDocument` per publisher page:
+
+```ts
+type RecipeSourceDocument = {
+  sourceUrl: string; // original publisher URL, not an aggregator redirect
+  jsonLd: unknown;   // schema.org Recipe JSON-LD from that source
+};
+```
+
+The normalizer supports standalone Recipe JSON-LD, arrays, and `@graph` or
+`mainEntity` wrappers. It accepts ISO 8601 durations, validates HTTP(S) source
+links, normalizes aggregate ratings, and deduplicates canonical source URLs.
+Providers should return complete ingredient lists, attribution-safe image URLs,
+and the publisher's canonical page. The module intentionally does not copy full
+recipe instructions.
+
+### Filtering and ranking notes
+
+- Allergy and dietary conflicts are hard-filtered before any scoring or badge
+  assignment. Common group aliases such as dairy, gluten, nuts, fish, shellfish,
+  soy, sesame, and mustard are expanded.
+- Supported dietary rule sets are vegan, vegetarian, pescatarian, gluten-free,
+  dairy-free, halal, and kosher. The provider's full ingredient list remains the
+  source of truth; the UI should still show an allergy safety disclaimer because
+  publisher data cannot establish cross-contamination or certification.
+- Unknown dietary rule sets fail closed: all candidates are rejected with a
+  `diet:unsupported:<value>` reason instead of being presented as compliant.
+- Pantry staples do not count as missing ingredients. `useSoon` ingredients
+  receive the documented 10% ranking contribution.
+- Rating confidence combines the normalized star rating with review count so a
+  single five-star review does not automatically outrank a strong, well-reviewed
+  recipe.
+- Multiple recommendation badges may apply to one recipe. The only badge values
+  are Best overall, Fastest, Uses most ingredients, Fewest missing ingredients,
+  and Highest rated.
+
+### Recipe search handoff
+
+- `FixtureRecipeProvider` uses deterministic, network-free schema.org fixtures
+  under reserved `recipes.example` URLs, so it is safe for development and UI
+  demos but must not be enabled in production.
+- The future server adapter should keep provider credentials server-only. The
+  deployment contract reserves `RECIPE_SEARCH_API_URL`,
+  `RECIPE_SEARCH_API_KEY`, `RECIPE_SEARCH_TIMEOUT_MS`, and
+  `RECIPE_SEARCH_USE_MOCK`; production should reject missing live credentials or
+  a true mock flag.
+- A real provider should document allowed image hosts, attribution requirements,
+  quota behavior, retry semantics, and timeouts before production rollout.
+- Search is deliberately independent of Gemma. Pass only the user's confirmed
+  inventory from the inventory screen into `RecipeSearchService`.
+
 ## Planned routes
 
 - `/` - scan or upload
@@ -141,7 +231,15 @@ Candidates are hard-filtered for allergies and dietary restrictions, then ranked
 
 ## Local development
 
-Setup commands will be added as soon as the application scaffold lands.
+The recipe-search workstream is a dependency-light TypeScript module and requires
+Node.js 22.6 or newer (Node.js 24 recommended). While the application scaffold is
+still landing, its tests run directly with Node's built-in TypeScript support:
+
+```bash
+npm test
+```
+
+There are no install-time package dependencies for the recipe-search module.
 
 Copy [`.env.example`](.env.example) to `.env.local` after the scaffold lands and fill in the server-only integration values. Never commit `.env.local`.
 
@@ -149,7 +247,7 @@ Copy [`.env.example`](.env.example) to `.env.local` after the scaffold lands and
 
 Vercel is the target host. The scaffold-independent deployment contract, environment matrix, image-upload limits, privacy rules, health-check contract, domain steps, and release checklist are in [`docs/deployment.md`](docs/deployment.md).
 
-Hosting status: **configuration contract ready; not yet deployable**. There is no Next.js application or `package.json` in the repository yet, so no Vercel project has been imported and no build can be validated.
+Hosting status: **configuration contract ready; not yet deployable**. The recipe-search package has landed, but the Next.js application scaffold is still being integrated, so no Vercel project has been imported and no app build can be validated yet.
 
 Exact next actions after the application scaffold lands:
 
