@@ -14,6 +14,18 @@ Last updated: 2026-09-17
 | Gemma image and ingredient extraction | External integration owner | External dependency |
 | End-to-end integration and QA | This repo | Pending |
 
+## Task coordination
+
+This repository is being built through separate visible Codex tasks for visual design and landing, recipe search, and Vercel hosting. The main task owns integration.
+
+Coordination rules:
+
+- Each task posts a message at its first working milestone, whenever it changes a shared contract, when it becomes blocked, and when its work is ready to integrate.
+- Contract changes are sent to the main task immediately rather than waiting for completion.
+- Each task updates its README status and handoff notes before declaring work ready.
+- The main task sends integration status back to each task after pulling or adapting its work.
+- The external Gemma owner is not modified by these tasks. Any expected API change is documented under the Gemma integration contract below.
+
 ## MVP flow
 
 1. Capture or upload 1-5 fridge or pantry images.
@@ -129,4 +141,3 @@ Candidates are hard-filtered for allergies and dietary restrictions, then ranked
 ## Local development
 
 Setup commands will be added as soon as the application scaffold lands.
-
