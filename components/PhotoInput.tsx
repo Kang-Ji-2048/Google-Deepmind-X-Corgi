@@ -108,8 +108,6 @@ export function PhotoInput() {
                   </li>
                 ))}
               </ul>
-              {!showDemo && <button className="button button-primary button-full" type="button" onClick={() => setShowDemo(true)} aria-describedby={`${inputId}-analysis-status`}>Find a recipe</button>}
-              <p id={`${inputId}-analysis-status`}>Demo mode · Photos stay on your device.</p>
               {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
                 <span className="photo-demo-label">Demo</span>
                 <h3 id={`${inputId}-demo-title`}>Roasted vegetables</h3>
@@ -118,7 +116,6 @@ export function PhotoInput() {
                   View recipe <ArrowSquareOut size={18} aria-hidden="true" />
                   <span className="visually-hidden"> (opens in a new tab)</span>
                 </a>
-                <p className="photo-demo-note">Ingredient matching is not connected yet.</p>
               </section>}
             </div>
           )}
