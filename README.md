@@ -10,6 +10,8 @@ Turn fridge or pantry photos into an editable inventory, then find real, highly 
 
 Integration update: 2026-09-17. The green/mint design, camera intake, standalone inventory confirmation, cuisine-first recipe UI and live recipe route are integrated. The route now defaults to TheMealDB's documented free development API and a live smoke test returned real recipes with original publisher links. Google Search grounding remains an optional upgrade; its key authenticated successfully but the project returned 429 `RESOURCE_EXHAUSTED`, so no billing was enabled and the app does not depend on it.
 
+Public preview: https://what-can-i-cook-sigma.vercel.app was deployed from `50a6ae8`; the hosting task is preparing the new demo deployment. New code is not automatically redeployed because Vercel's GitHub access is not connected. Production/Vercel rejects TheMealDB's development key `1` or a missing key unless `MEALDB_ALLOW_DEMO_KEY=true` explicitly enables a labelled development/educational demo. Keep that opt-in false for a product release and configure a production supporter key. Local `npm run dev` may use key `1`. TheMealDB lacks cooking times, so **Any time** is the default; selecting a strict time filter excludes those unknown-time recipes. Missing-ingredient allowance defaults to **Any**, with missing items clearly shown. Source ratings are unknown, so this fallback does not yet meet the final highly-rated-recipe goal.
+
 | Area | Implemented on main | Still needed |
 | --- | --- | --- |
 | Landing page | PeakPath green/mint design, responsive food photography, animated fridge logo, compact interactive walkthrough | Final cross-device QA |

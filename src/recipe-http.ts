@@ -42,6 +42,7 @@ export async function handleRecipeSearch(request: Request, search: (input: Recip
   try {
     return Response.json(await search(input), { headers });
   } catch (cause) {
+    if (cause instanceof Error && cause.message === "MEALDB_PRODUCTION_KEY_REQUIRED") return searchError("SEARCH_NOT_CONFIGURED", "Public recipe search needs a production provider key. TheMealDB's development key is not enabled on this deployment.", 503);
     if (cause instanceof Error && cause.message === "SEARCH_NOT_CONFIGURED") return searchError("SEARCH_NOT_CONFIGURED", "The selected recipe provider is not configured yet.", 503);
     if (cause instanceof Error && cause.message === "Gemini grounding request failed with HTTP 429") return searchError("SEARCH_QUOTA_EXHAUSTED", "Google's search quota is unavailable or exhausted for this project. Check the project's API quota before trying again.", 503);
     if (cause instanceof Error && cause.message === "Gemini grounding request failed with HTTP 404") return searchError("SEARCH_MODEL_UNAVAILABLE", "The configured Google search model is not available to this project. Update the server's search model setting.", 503);

@@ -13,12 +13,19 @@ export async function POST(request: Request) {
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(45_000)]);
     const providerName = (process.env.RECIPE_SEARCH_PROVIDER ?? "mealdb").trim().toLowerCase();
     if (providerName === "mealdb") {
+      const mealDbKey = process.env.MEALDB_API_KEY?.trim();
+      const developmentKey = !mealDbKey || mealDbKey === "1";
+      const allowDemo = process.env.MEALDB_ALLOW_DEMO_KEY === "true";
+      if ((process.env.NODE_ENV === "production" || process.env.VERCEL === "1") && developmentKey && !allowDemo) {
+        throw new Error("MEALDB_PRODUCTION_KEY_REQUIRED");
+      }
       const provider = new MealDbRecipeProvider({
-        apiKey: process.env.MEALDB_API_KEY?.trim() || "1",
+        apiKey: mealDbKey || "1",
         signal,
         timeoutMs
       });
-      return new RecipeSearchService(provider).search(input);
+      const result = await new RecipeSearchService(provider).search(input);
+      return { ...result, provider: developmentKey ? "themealdb-development-demo" : "themealdb" };
     }
     if (providerName !== "google") throw new Error("SEARCH_NOT_CONFIGURED");
     const apiKey = process.env.RECIPE_SEARCH_API_KEY?.trim();

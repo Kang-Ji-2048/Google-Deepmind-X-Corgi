@@ -50,8 +50,8 @@ const initialIngredients: EditableIngredient[] = [
 
 const initialFilters: RecipeFilterState = {
   cuisines: [],
-  maxTotalTimeMinutes: 30,
-  maxMissingIngredients: 3,
+  maxTotalTimeMinutes: undefined,
+  maxMissingIngredients: undefined,
   dietaryRestrictions: [],
   allergies: "",
   pantryStaples: "salt, black pepper, olive oil",
@@ -270,6 +270,7 @@ export function RecipeSearch() {
               >{time.label}</button>
             ))}
           </div>
+          <p className="manual-note">Selecting a time excludes recipes with unknown times. TheMealDB does not supply cooking times, so keep Any time for that provider.</p>
         </fieldset>
 
         <fieldset className="filter-group">
@@ -404,6 +405,7 @@ export function RecipeSearch() {
             </>
           )}
           {searchState === "success" && result && <>
+            {result.provider === "themealdb-development-demo" && <p className="manual-note">Development demo using TheMealDB’s real recipe catalogue. Ratings and cooking times are not supplied; inspect missing ingredients before choosing.</p>}
             <p className="manual-note">Check quantities, equipment, allergens, and the full recipe on the publisher’s page before cooking. Matches are ingredient-name estimates.</p>
             <GroundingAttribution attribution={result.attribution} />
           </>}

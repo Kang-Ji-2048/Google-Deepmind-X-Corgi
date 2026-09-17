@@ -4,6 +4,8 @@ Last verified against Vercel documentation: 2026-09-17.
 
 ## Current status
 
+The hosted demo can explicitly opt in with `RECIPE_SEARCH_PROVIDER=mealdb`, `MEALDB_API_KEY=1`, and `MEALDB_ALLOW_DEMO_KEY=true`. The UI labels those results as a development demo with unknown ratings/time. Do not enable that flag for a full product release; production without the opt-in rejects the development key and needs an appropriate supporter key. No Google secret is required for the MealDB demo.
+
 The Next.js app, camera intake, `/recipes` filters/results, `/api/recipes`, free TheMealDB provider, and optional Google grounding provider are integrated; 30 tests, production build and typecheck pass. A live TheMealDB request returned original publisher links. Google authentication passed but grounding returned 429 quota exhaustion, so it is not the default and no billing was enabled. Gemma analysis/proxy, inventory handoff, health route, Vercel deployment, and end-to-end device checks remain outstanding.
 
 This worktree has no `.vercel/` project link and no Vercel CLI installation, so no linked project, deployment credentials, remote environment names, or deployed URL could be validated here. No secret values were inspected. Treat every Vercel setup item below as pending until the project owner links or imports the repository.
