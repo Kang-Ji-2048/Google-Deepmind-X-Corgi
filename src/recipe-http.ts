@@ -43,6 +43,8 @@ export async function handleRecipeSearch(request: Request, search: (input: Recip
     return Response.json(await search(input), { headers });
   } catch (cause) {
     if (cause instanceof Error && cause.message === "SEARCH_NOT_CONFIGURED") return searchError("SEARCH_NOT_CONFIGURED", "Google recipe search is not configured yet. Add the server API key and try again.", 503);
+    if (cause instanceof Error && cause.message === "Gemini grounding request failed with HTTP 429") return searchError("SEARCH_QUOTA_EXHAUSTED", "Google's search quota is unavailable or exhausted for this project. Check the project's API quota before trying again.", 503);
+    if (cause instanceof Error && cause.message === "Gemini grounding request failed with HTTP 404") return searchError("SEARCH_MODEL_UNAVAILABLE", "The configured Google search model is not available to this project. Update the server's search model setting.", 503);
     if (cause instanceof Error && ["AbortError", "TimeoutError"].includes(cause.name)) return searchError("SEARCH_TIMEOUT", "Search took too long. Please try again.", 504, true);
     return searchError("SEARCH_UNAVAILABLE", "Google recipe search or its recipe sources are temporarily unavailable. Please try again.", 502, true);
   }

@@ -4,7 +4,7 @@ Last verified against Vercel documentation: 2026-09-17.
 
 ## Current status
 
-The initial Next.js 16 App Router scaffold is integrated on main and its production build, TypeScript check, and 9 recipe-library tests have passed. A landing-only preview can now be deployed. Live recipe-search work is underway using Gemini API Google Search grounding, but the complete cooking workflow is not ready yet: analysis, recipe, and health server routes, product screens, and the live provider path still need to land and pass integration checks.
+The Next.js app, camera intake, `/recipes` filters/results, `/api/recipes`, and Google grounding provider are integrated; 27 tests, production build and typecheck pass. Local key authentication passed, but actual grounding returned 429 quota exhaustion. Google rejected 2.5 Flash for new users and recommended 3.6 Flash, now the default. No billing was enabled. Gemma analysis/proxy, inventory handoff, health route, Vercel import/secrets, and end-to-end device checks remain outstanding. Do not advertise a working scan-to-recipe deployment yet.
 
 This worktree has no `.vercel/` project link and no Vercel CLI installation, so no linked project, deployment credentials, remote environment names, or deployed URL could be validated here. No secret values were inspected. Treat every Vercel setup item below as pending until the project owner links or imports the repository.
 
@@ -39,7 +39,7 @@ All variables below are server-only. None may use a `NEXT_PUBLIC_` prefix or be 
 | `GEMMA_USE_MOCK` | Yes | `true` until sandbox is ready | `false` | Explicitly selects deterministic fixture data |
 | `RECIPE_SEARCH_API_URL` | No | Omit or Gemini base | Omit or Gemini base | Optional base override; default is `https://generativelanguage.googleapis.com/v1beta` |
 | `RECIPE_SEARCH_API_KEY` | When mock is false | Dedicated Preview key | Production key | Gemini API key, sent only as `x-goog-api-key` |
-| `RECIPE_SEARCH_MODEL` | No | `gemini-2.5-flash` | `gemini-2.5-flash` | Optional stable model override; selected model must support Google Search grounding |
+| `RECIPE_SEARCH_MODEL` | No | `gemini-3.6-flash` | `gemini-3.6-flash` | Optional model override; selected model must support Google Search grounding and have project quota |
 | `RECIPE_SEARCH_TIMEOUT_MS` | Yes | `10000` | `10000` initially | Per-outbound-request timeout for Gemini and publisher fetches |
 | `RECIPE_SEARCH_USE_MOCK` | Yes | `true` until sandbox is ready | `false` | Explicitly selects deterministic recipe fixtures |
 
@@ -99,7 +99,7 @@ Gemini setup is an external release prerequisite:
 6. Run one Preview search, verify grounded responses contain usable `groundingChunks[].web.uri` values, and confirm `401`, `403`, `404` model errors, `429 RESOURCE_EXHAUSTED`, and missing grounding metadata become intentional states.
 7. Preserve `groundingMetadata.searchEntryPoint.renderedContent` through the server response when present and render the required Google Search entry point according to Google's usage requirements. Do not substitute model prose for source-backed recipe data.
 
-Official references: [Google Search grounding](https://ai.google.dev/gemini-api/docs/generate-content/google-search), [Gemini API keys](https://ai.google.dev/gemini-api/docs/api-key), [Gemini 2.5 Flash](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash), [rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), and [pricing](https://ai.google.dev/gemini-api/docs/pricing).
+Official references: [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search), [Gemini API keys](https://ai.google.dev/gemini-api/docs/api-key), [available models](https://ai.google.dev/gemini-api/docs/models), [rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), and [pricing](https://ai.google.dev/gemini-api/docs/pricing).
 
 ## Image privacy and logging
 
@@ -211,6 +211,6 @@ Vercel automatically provisions TLS after DNS verification. See [Vercel custom-d
 - Gemini grounding returns discovery URLs, not normalized Recipe records. Model prose is deliberately ignored; publisher HTML remains untrusted and inconsistent, and up to 10 page fetches can dominate latency even when `generateContent` is fast.
 - The live provider's source-image hosts and any publisher-specific attribution requirements are not yet known, so `next/image` allowlists and final attribution UI cannot be finalized.
 - Five camera originals will normally exceed Vercel's function body limit; client compression or direct private upload is mandatory, not an optimization.
-- The landing build is verified; analysis, recipe, and health routes are still missing. A successful landing deployment alone does not demonstrate working Gemma analysis or live recipe discovery.
+- The landing and recipe builds are verified; analysis and health routes are still missing. Local Google search is currently quota-blocked. A successful build alone does not demonstrate working Gemma analysis or live recipe retrieval.
 
 Framework references: [Next.js 16 runtime requirements](https://nextjs.org/docs/app/guides/upgrading/version-16) and [Vercel Node.js 24 availability](https://vercel.com/changelog/node-js-24-lts-is-now-generally-available-for-builds-and-functions).

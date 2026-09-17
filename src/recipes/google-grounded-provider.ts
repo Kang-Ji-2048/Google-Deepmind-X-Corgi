@@ -137,7 +137,7 @@ export class GeminiGroundedRecipeProvider implements RecipeProvider {
     if (apiBaseUrl.protocol !== "https:" || apiBaseUrl.hostname !== "generativelanguage.googleapis.com") {
       throw new Error("Gemini API base URL must be the official generativelanguage.googleapis.com HTTPS endpoint");
     }
-    const model = options.model ?? "gemini-2.5-flash";
+    const model = options.model ?? "gemini-3.6-flash";
     if (!/^[a-z0-9][a-z0-9._-]{1,80}$/i.test(model)) throw new Error("Invalid Gemini model name");
     this.options = {
       ...options,

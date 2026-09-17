@@ -26,6 +26,8 @@ test("HTTP boundary rejects invalid, oversized, and cross-origin requests before
 test("HTTP failures never expose secrets or silently return fixtures", async () => {
   const notConfigured = await handleRecipeSearch(request(valid), async () => { throw new Error("SEARCH_NOT_CONFIGURED"); });
   assert.equal(notConfigured.status, 503);
+  const quota = await handleRecipeSearch(request(valid), async () => { throw new Error("Gemini grounding request failed with HTTP 429"); });
+  assert.equal((await quota.json()).error.code, "SEARCH_QUOTA_EXHAUSTED");
   const upstream = await handleRecipeSearch(request(valid), async () => { throw new Error("secret-key-should-not-leak"); });
   assert.equal(upstream.status, 502);
   assert.doesNotMatch(await upstream.text(), /secret-key/);

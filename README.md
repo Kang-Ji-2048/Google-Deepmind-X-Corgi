@@ -8,7 +8,7 @@ Turn fridge or pantry photos into an editable inventory, then find real, highly 
 
 ## Where we are now
 
-Integration update: 2026-09-17. The initial scaffold, green/mint design, camera intake, cuisine-first recipe UI and Google-backed search implementation are integrated. Live Google compatibility checks are in progress; the key is stored only in ignored local configuration.
+Integration update: 2026-09-17. The green/mint design, camera intake, standalone inventory confirmation, cuisine-first recipe UI and Google-backed search implementation are integrated. The key is saved in ignored `.env.local` (owner-only permissions) and Google authentication returned HTTP 200. **Live search is quota-blocked:** `gemini-2.5-flash` returned 404 (unavailable to new users); Google's recommended `gemini-3.6-flash` returned 429 `RESOURCE_EXHAUSTED`. Defaults now use 3.6. No billing was enabled, and successful live recipe retrieval has not been demonstrated.
 
 | Area | Implemented on main | Still needed |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Current verification: 27 automated tests, production build and typecheck pass. T
 
 | Owner | Current responsibility | Next handoff |
 | --- | --- | --- |
-| Our visual task | Landing/redesign/logo delivered | Standalone Gemma inventory confirmation UI |
+| Our visual task | Landing/redesign/logo and standalone `InventoryConfirmation` delivered | Wire confirmation into the real Gemma parent flow and browser-test it |
 | Our main integration task | Camera, validated search route, Google credentials/smoke tests, contracts/README and Git integration | Verified live search, then external Gemma connection |
 | Our recipe task | Google provider, ranking, SSRF defenses and shared 45s deadline delivered | Live-search compatibility/relevance support |
 | Our cuisine/filter task | Cuisine-first manual inventory/preferences/results UI delivered | Mobile and interaction QA |
@@ -127,6 +127,7 @@ Current scoring weights: 35% pantry ingredient coverage, 25% source rating confi
 | --- | --- |
 | `app/page.tsx`, `app/layout.tsx` | Landing page and Next.js shell |
 | `components/PhotoInput.tsx`, `components/CameraCapture.tsx`, `src/camera.css` | Upload/camera capture; Gemma submit pending |
+| `components/InventoryConfirmation.tsx`, `src/inventory-ui.css` | Standalone editable Gemma response review; not mounted on a live route yet |
 | `app/recipes/page.tsx`, `components/RecipeSearch.tsx`, `src/recipe-ui.css` | Manual inventory, cuisine/preferences and results |
 | `app/api/recipes/route.ts`, `src/recipe-http.ts`, `src/search-input.ts` | Server-only live search, bounded JSON and input validation |
 | `components/GroundingAttribution.tsx` | Sandboxed Google Search suggestions and source links |
