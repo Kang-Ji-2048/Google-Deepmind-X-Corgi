@@ -1,5 +1,5 @@
 import { normalizeRecipeDocument } from "./normalize.ts";
-import { assignRecommendationBadges, scoreRecipe } from "./rank.ts";
+import { assignRecommendationBadges, feasibilityRejectionReasons, scoreRecipe } from "./rank.ts";
 import { safetyRejectionReasons } from "./safety.ts";
 import type { RecipeProvider, RecipeSearchInput, RecipeSearchResult } from "./types.ts";
 
@@ -28,15 +28,22 @@ export class RecipeSearchService {
       if (reasons.length > 0) rejected.push({ sourceUrl: recipe.sourceUrl, name: recipe.name, reasons });
       return reasons.length === 0;
     });
-    const ranked = accepted
-      .map((recipe) => scoreRecipe(recipe, input.ingredients, constraints))
+    const feasible = accepted.map((recipe) => scoreRecipe(recipe, input.ingredients, constraints))
+      .filter((recipe) => {
+        const reasons = feasibilityRejectionReasons(recipe, constraints);
+        if (reasons.length > 0) rejected.push({ sourceUrl: recipe.sourceUrl, name: recipe.name, reasons });
+        return reasons.length === 0;
+      });
+    const ranked = feasible
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
     const recipes = input.limit ? ranked.slice(0, input.limit) : ranked;
     assignRecommendationBadges(recipes);
+    const attribution = this.provider.getAttribution?.();
     return {
       recipes,
       rejected,
-      provider: this.provider.name
+      provider: this.provider.name,
+      ...(attribution ? { attribution } : {})
     };
   }
 }

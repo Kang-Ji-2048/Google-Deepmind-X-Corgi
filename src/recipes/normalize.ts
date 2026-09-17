@@ -103,8 +103,11 @@ function validUrl(value: string): string | undefined {
 
 function canonicalSourceUrl(node: JsonObject, fallback: string): string | undefined {
   const mainEntity = isObject(node.mainEntityOfPage) ? node.mainEntityOfPage["@id"] : undefined;
-  const candidate = strings(node.url)[0] ?? strings(mainEntity)[0] ?? fallback;
-  return validUrl(candidate) ?? validUrl(fallback);
+  const fallbackUrl = validUrl(fallback);
+  if (!fallbackUrl) return undefined;
+  const candidate = validUrl(strings(node.url)[0] ?? strings(mainEntity)[0] ?? "");
+  if (!candidate) return fallbackUrl;
+  return new URL(candidate).hostname === new URL(fallbackUrl).hostname ? candidate : fallbackUrl;
 }
 
 export function normalizeRecipeDocument(document: RecipeSourceDocument): NormalizedRecipe[] {
@@ -122,7 +125,8 @@ export function normalizeRecipeDocument(document: RecipeSourceDocument): Normali
     const ratingCount = Number(aggregate?.ratingCount ?? aggregate?.reviewCount ?? 0);
     const hasRating = Number.isFinite(ratingValue) && ratingValue >= 0 &&
       Number.isFinite(bestRating) && bestRating > 0;
-    const equipment = strings(node.tool ?? node.equipment).map(normalizeIngredientName).filter(Boolean);
+    const equipmentValue = node.tool ?? node.equipment;
+    const equipment = strings(equipmentValue).map(normalizeIngredientName).filter(Boolean);
     const publisher = strings(node.publisher ?? node.author)[0];
 
     return [{
@@ -137,6 +141,8 @@ export function normalizeRecipeDocument(document: RecipeSourceDocument): Normali
         ? { totalTimeMinutes: parseDurationMinutes(node.totalTime ?? node.cookTime) }
         : {}),
       equipment,
+      equipmentKnown: equipmentValue !== undefined,
+      cuisines: strings(node.recipeCuisine).map((cuisine) => cuisine.trim()).filter(Boolean),
       suitableForDiet: strings(node.suitableForDiet).map((diet) => diet.toLowerCase()),
       ...(hasRating ? {
         rating: {

@@ -38,10 +38,40 @@ function timeAndEquipmentFit(recipe: NormalizedRecipe, constraints: RecipeConstr
         : clamp(constraints.maxTotalTimeMinutes / recipe.totalTimeMinutes);
   }
   const availableEquipment = (constraints.availableEquipment ?? []).map(normalizeIngredientName);
-  const equipmentFit = constraints.availableEquipment === undefined || recipe.equipment.length === 0
+  const equipmentFit = constraints.availableEquipment === undefined
     ? 1
-    : recipe.equipment.filter((item) => isAvailable(item, availableEquipment)).length / recipe.equipment.length;
+    : !recipe.equipmentKnown
+      ? 0.5
+      : recipe.equipment.length === 0
+        ? 1
+        : recipe.equipment.filter((item) => isAvailable(item, availableEquipment)).length / recipe.equipment.length;
   return (timeFit + equipmentFit) / 2;
+}
+
+export function feasibilityRejectionReasons(
+  recipe: RankedRecipe,
+  constraints: RecipeConstraints
+): string[] {
+  const reasons: string[] = [];
+  if (constraints.maxMissingIngredients !== undefined &&
+      recipe.missingIngredients.length > constraints.maxMissingIngredients) {
+    reasons.push("feasibility:missing-ingredients");
+  }
+  if (constraints.enforceTimeLimit && constraints.maxTotalTimeMinutes !== undefined) {
+    if (recipe.totalTimeMinutes === undefined) reasons.push("feasibility:time-unknown");
+    else if (recipe.totalTimeMinutes > constraints.maxTotalTimeMinutes) reasons.push("feasibility:time");
+  }
+  if (constraints.enforceEquipment) {
+    if (!recipe.equipmentKnown || constraints.availableEquipment === undefined) {
+      reasons.push("feasibility:equipment-unknown");
+    } else {
+      const available = constraints.availableEquipment.map(normalizeIngredientName);
+      if (recipe.equipment.some((item) => !isAvailable(item, available))) {
+        reasons.push("feasibility:equipment");
+      }
+    }
+  }
+  return reasons;
 }
 
 export function scoreRecipe(

@@ -14,10 +14,14 @@ export interface ConfirmedIngredient {
 }
 
 export interface RecipeConstraints {
+  cuisines?: readonly string[];
   allergies?: readonly string[];
   dietaryRestrictions?: readonly (DietaryRestriction | string)[];
   maxTotalTimeMinutes?: number;
+  maxMissingIngredients?: number;
   availableEquipment?: readonly string[];
+  enforceTimeLimit?: boolean;
+  enforceEquipment?: boolean;
   pantryStaples?: readonly string[];
 }
 
@@ -44,6 +48,13 @@ export interface RecipeProviderQuery {
 export interface RecipeProvider {
   readonly name: string;
   search(query: RecipeProviderQuery): Promise<readonly RecipeSourceDocument[]>;
+  getAttribution?(): RecipeProviderAttribution | undefined;
+}
+
+export interface RecipeProviderAttribution {
+  searchEntryPointHtml?: string;
+  sources: Array<{ url: string; title?: string }>;
+  queries: string[];
 }
 
 export interface NormalizedRecipe {
@@ -56,6 +67,8 @@ export interface NormalizedRecipe {
   ingredientNames: string[];
   totalTimeMinutes?: number;
   equipment: string[];
+  equipmentKnown: boolean;
+  cuisines: string[];
   suitableForDiet: string[];
   rating?: {
     value: number;
@@ -95,4 +108,5 @@ export interface RecipeSearchResult {
     reasons: string[];
   }>;
   provider: string;
+  attribution?: RecipeProviderAttribution;
 }
