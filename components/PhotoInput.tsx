@@ -109,7 +109,6 @@ export function PhotoInput() {
                 ))}
               </ul>
               {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
-                <span className="photo-demo-label">Demo</span>
                 <h3 id={`${inputId}-demo-title`}>Roasted vegetables</h3>
                 <p>Good Food Middle East</p>
                 <a className="button button-primary button-full" href="https://www.bbcgoodfoodme.com/recipes/roasted-vegetables/" target="_blank" rel="noopener noreferrer">
