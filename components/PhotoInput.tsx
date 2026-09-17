@@ -112,9 +112,9 @@ export function PhotoInput() {
               <p id={`${inputId}-analysis-status`}>Demo mode · Photos stay on your device.</p>
               {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
                 <span className="photo-demo-label">Demo</span>
-                <h3 id={`${inputId}-demo-title`}>Chicken &amp; mushroom hotpot</h3>
-                <p>BBC Good Food</p>
-                <a className="button button-primary button-full" href="https://www.bbcgoodfood.com/recipes/chicken-mushroom-hot-pot" target="_blank" rel="noopener noreferrer">
+                <h3 id={`${inputId}-demo-title`}>Roasted vegetables</h3>
+                <p>Good Food Middle East</p>
+                <a className="button button-primary button-full" href="https://www.bbcgoodfoodme.com/recipes/roasted-vegetables/" target="_blank" rel="noopener noreferrer">
                   View recipe <ArrowSquareOut size={18} aria-hidden="true" />
                   <span className="visually-hidden"> (opens in a new tab)</span>
                 </a>
