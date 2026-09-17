@@ -21,7 +21,9 @@ Public preview: https://what-can-i-cook-sigma.vercel.app was deployed from `50a6
 | Recipe matching | Free TheMealDB provider, optional Google grounding provider, source normalization, strict selected constraints, ranking/badges, `/api/recipes`, full results UI | Relevance tuning and a production provider key before a public release |
 | Hosting | Server env wiring for recipe search, Vercel runbook, Node 24 | Vercel secrets/import/deployment, health endpoint and device checks |
 
-The **Scan my kitchen** button is explicitly disabled until Gemma is connected. Use **Enter ingredients and find recipes** to open `/recipes`. No `/api/analyze` or `/api/health` endpoint exists yet. `/inventory` and `/preferences` remain planned; preference controls already work on `/recipes`. Landing walkthrough/loading examples are labelled demonstrations, not inference.
+**Immediate photo demo:** choose or capture any supported picture, then click **Find a recipe**. It reveals a fixed BBC Good Food chicken-and-mushroom hotpot card and **View recipe** link. Normal product copy is used with a small **Demo** marker and a brief note that ingredient matching is not connected. No image upload, model call, fake ingredient extraction, API key or quota is needed. Changing/removing photos resets the example. It is not personalized or checked against dietary requirements.
+
+For actual ingredient-based search, use **Enter ingredients and find recipes** to open `/recipes`. Gemma analysis remains unwired: no `/api/analyze` or `/api/health` endpoint exists yet. `/inventory` and `/preferences` remain planned; preference controls already work on `/recipes`. Landing walkthrough/loading examples are labelled demonstrations, not inference.
 
 `/api/recipes` defaults to TheMealDB's real free V1 data and returns only records carrying an original publisher source link. It does not invent ratings, time, or equipment metadata that TheMealDB does not supply. Set `RECIPE_SEARCH_PROVIDER=google` to use the optional Google-grounded provider when that project has quota. Fixtures remain test-only. Gemma is the separate image-recognition integration.
 

@@ -17,6 +17,11 @@
 .photo-capture-dialog .field-message { margin: 14px 0; font-family: var(--font-body), sans-serif; font-size: 14px; line-height: 1.5; }
 .photo-capture-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .photo-capture-actions .button { padding-inline: 18px; }
+.photo-demo-result { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.photo-demo-label { color: var(--mint); font-size: 12px; }
+.photo-demo-result h3 { margin: 10px 0; font-size: 26px; line-height: 1.1; }
+.photo-input .photo-demo-result p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+.photo-input .photo-demo-result .photo-demo-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
 @media (max-width: 480px) {
   .photo-capture-dialog { padding: 16px; }
   .photo-intake-actions { display: grid; grid-template-columns: 1fr; width: 100%; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useRef, useState } from "react";
-import { Camera, ImageSquare, Plus, X } from "@phosphor-icons/react";
+import { ArrowSquareOut, Camera, ImageSquare, Plus, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { CameraCapture } from "./CameraCapture";
 import "@/src/camera.css";
@@ -19,6 +19,7 @@ export function PhotoInput() {
   const closeCamera = useCallback(() => setCameraOpen(false), []);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
+  const [showDemo, setShowDemo] = useState(false);
 
   function addFiles(fileList: FileList | File[] | null): boolean {
     const incoming = Array.from(fileList ?? []);
@@ -40,6 +41,7 @@ export function PhotoInput() {
 
     filesRef.current = [...current, ...accepted];
     setFiles(filesRef.current);
+    setShowDemo(false);
     setError(incoming.length > room ? "You can add up to five photos." : "");
     return true;
   }
@@ -47,6 +49,7 @@ export function PhotoInput() {
   function removeFile(index: number) {
     filesRef.current = filesRef.current.filter((_, itemIndex) => itemIndex !== index);
     setFiles(filesRef.current);
+    setShowDemo(false);
     setError("");
   }
 
@@ -105,8 +108,18 @@ export function PhotoInput() {
                   </li>
                 ))}
               </ul>
-              <button className="button button-primary button-full" type="button" disabled aria-describedby={`${inputId}-analysis-status`}>Scan my kitchen</button>
-              <p id={`${inputId}-analysis-status`}>Image analysis is being connected. You can search with typed ingredients below.</p>
+              <button className="button button-primary button-full" type="button" onClick={() => setShowDemo(true)} aria-describedby={`${inputId}-analysis-status`}>Find a recipe</button>
+              <p id={`${inputId}-analysis-status`}>Demo mode · Photos stay on your device.</p>
+              {showDemo && <section className="photo-demo-result" aria-live="polite" aria-labelledby={`${inputId}-demo-title`}>
+                <span className="photo-demo-label">Demo</span>
+                <h3 id={`${inputId}-demo-title`}>Chicken &amp; mushroom hotpot</h3>
+                <p>BBC Good Food</p>
+                <a className="button button-primary button-full" href="https://www.bbcgoodfood.com/recipes/chicken-mushroom-hot-pot" target="_blank" rel="noopener noreferrer">
+                  View recipe <ArrowSquareOut size={18} aria-hidden="true" />
+                  <span className="visually-hidden"> (opens in a new tab)</span>
+                </a>
+                <p className="photo-demo-note">Ingredient matching is not connected yet.</p>
+              </section>}
             </div>
           )}
         </div>
