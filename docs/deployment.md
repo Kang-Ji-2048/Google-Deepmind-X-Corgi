@@ -4,19 +4,21 @@ Last verified against Vercel documentation: 2026-09-17.
 
 ## Current status
 
-The deployment contract is ready, but this worktree is not deployable yet: it does not contain the confirmed Next.js 16 App Router scaffold or `package.json`. Do not create a Vercel project until the scaffold's local production build succeeds. This avoids locking in guessed build overrides.
+The initial Next.js 16 App Router scaffold is integrated on main and its production build, TypeScript check, and 9 recipe-library tests have passed. A landing-only preview can now be deployed. The complete cooking workflow is not ready yet: analysis, recipe, and health server routes, product screens, and live providers still need implementation. No Vercel deployment has been verified in this task.
+
+Use the [README](../README.md) for current implementation status and the [Gemma handoff](gemma-integration.md) for the external collaborator's responsibilities. The environment and route settings below are a target contract, not existing runtime behavior.
 
 No `vercel.json` is committed at this stage. Vercel detects Next.js automatically, and route-level runtime settings belong beside the eventual route handlers. Add project configuration only when the scaffold or a verified deployment requires it.
 
 ## Project import and build settings
 
-After the scaffold lands:
+For the first deployment:
 
 1. Push the repository to its Git provider and import it from the Vercel dashboard.
 2. Select the intended Vercel team and use a clear project name such as `what-can-i-cook`.
 3. Set **Framework Preset** to **Next.js**.
 4. Set **Root Directory** to the repository root. Change this only if the app becomes a monorepo.
-5. Leave **Install Command**, **Build Command**, and **Output Directory** on framework defaults. Expected commands are the package manager install and `next build`; expected output is `.next`.
+5. Use the committed npm lockfile and the package's `npm run build` script (currently `next build --webpack`). Keep the framework output default `.next`; do not point Vercel at a Vite `dist` directory.
 6. Pin `package.json#engines.node` to `24.x` and select Node.js 24.x in Vercel. Node.js 24 is Vercel's current default; Next.js 16 requires Node.js 20.9 or later. If the scaffold owner chooses a different supported major, keep both settings identical and document why.
 7. Set the production branch to `main` (or the repository's actual protected release branch if that changes).
 8. Enable standard deployment protection for generated deployment and Preview URLs. Share a Vercel-authenticated or explicitly generated share link with judges/testers; do not make image-bearing previews casually public.
@@ -29,7 +31,7 @@ All variables below are server-only. None may use a `NEXT_PUBLIC_` prefix or be 
 
 | Variable | Required | Preview | Production | Purpose |
 | --- | --- | --- | --- | --- |
-| `GEMMA_API_URL` | When mock is false | Sandbox/staging URL | Production URL | Base URL for the externally owned image-analysis service |
+| `GEMMA_API_URL` | When mock is false | Sandbox/staging URL | Production URL | Full analysis endpoint URL, including the route; see the Gemma handoff |
 | `GEMMA_API_KEY` | When mock is false | Sandbox key | Production key | Authorization for Gemma; send only from the server adapter |
 | `GEMMA_API_TIMEOUT_MS` | Yes | `45000` | `45000` initially | Adapter timeout; must be shorter than the route duration |
 | `GEMMA_USE_MOCK` | Yes | `true` until sandbox is ready | `false` | Explicitly selects deterministic fixture data |
@@ -38,7 +40,7 @@ All variables below are server-only. None may use a `NEXT_PUBLIC_` prefix or be 
 | `RECIPE_SEARCH_TIMEOUT_MS` | Yes | `10000` | `10000` initially | Per-request search timeout |
 | `RECIPE_SEARCH_USE_MOCK` | Yes | `true` until sandbox is ready | `false` | Explicitly selects deterministic recipe fixtures |
 
-The application should validate this contract at server startup/build time with a small schema. Parse booleans and positive integer timeouts explicitly; the strings `"false"` and `"0"` are truthy in JavaScript. Fail a Production build when either mock flag is true or a required live credential is absent.
+Once adapters are connected, validate this contract on the server with a small schema. Parse booleans and positive integer timeouts explicitly; the strings `"false"` and `"0"` are truthy in JavaScript. A landing-only preview does not need working model credentials. A release advertised as a functioning live cooking app must use live providers and must not silently fall back to fixtures when credentials are absent.
 
 Configure values in **Project Settings → Environment Variables** for Preview and Production separately. Environment changes apply only to subsequent deployments, so redeploy after every change. For local work, copy `.env.example` to the ignored `.env.local`, or link the project and pull Development values with `vercel env pull .env.local`.
 
@@ -126,9 +128,9 @@ Vercel automatically provisions TLS after DNS verification. See [Vercel custom-d
 
 ### Before the first Preview
 
-- [ ] Next.js scaffold and lockfile are committed.
-- [ ] `package.json` contains the expected `build`, `lint`, and test/type-check scripts plus an explicit supported Node.js engine (`24.x` is the current recommendation).
-- [ ] Clean install, lint, type-check, tests, and `npm run build` pass locally.
+- [x] Next.js scaffold and lockfile are committed.
+- [x] `package.json` contains `dev`, `build`, `start`, `test`, and `typecheck` scripts plus Node.js `24.x`. There is no lint script yet.
+- [x] Clean install, tests, production build, and type-check passed for the initial integrated scaffold. Re-run for the release commit, with build and type-check sequential because Next.js regenerates types.
 - [ ] Provider adapters are server-only and validate every upstream response against the shared schemas.
 - [ ] `.env.local` and `.vercel/` remain ignored; `git grep` finds no real secret.
 - [ ] Preview variables are set with mock flags intentionally chosen.
@@ -163,6 +165,6 @@ Vercel automatically provisions TLS after DNS verification. See [Vercel custom-d
 - The recipe-search provider and its quota, attribution requirements, result schema, image hosts, and sandbox support are not yet chosen.
 - Five camera originals will normally exceed Vercel's function body limit; client compression or direct private upload is mandatory, not an optimization.
 - `next/image` allowlists cannot be finalized until recipe image hosts are known.
-- The current repository has no build, route, or health endpoint to validate. Deployment readiness must be rechecked immediately after the scaffold lands.
+- The landing build is verified; analysis, recipe, and health routes are still missing. A successful landing deployment alone does not demonstrate working Gemma analysis or live recipe discovery.
 
 Framework references: [Next.js 16 runtime requirements](https://nextjs.org/docs/app/guides/upgrading/version-16) and [Vercel Node.js 24 availability](https://vercel.com/changelog/node-js-24-lts-is-now-generally-available-for-builds-and-functions).
