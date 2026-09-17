@@ -4,7 +4,7 @@ Last verified against Vercel documentation: 2026-09-17.
 
 ## Current status
 
-The Next.js app, camera intake, `/recipes` filters/results, `/api/recipes`, and Google grounding provider are integrated; 27 tests, production build and typecheck pass. Local key authentication passed, but actual grounding returned 429 quota exhaustion. Google rejected 2.5 Flash for new users and recommended 3.6 Flash, now the default. No billing was enabled. Gemma analysis/proxy, inventory handoff, health route, Vercel import/secrets, and end-to-end device checks remain outstanding. Do not advertise a working scan-to-recipe deployment yet.
+The Next.js app, camera intake, `/recipes` filters/results, `/api/recipes`, free TheMealDB provider, and optional Google grounding provider are integrated; 30 tests, production build and typecheck pass. A live TheMealDB request returned original publisher links. Google authentication passed but grounding returned 429 quota exhaustion, so it is not the default and no billing was enabled. Gemma analysis/proxy, inventory handoff, health route, Vercel deployment, and end-to-end device checks remain outstanding.
 
 This worktree has no `.vercel/` project link and no Vercel CLI installation, so no linked project, deployment credentials, remote environment names, or deployed URL could be validated here. No secret values were inspected. Treat every Vercel setup item below as pending until the project owner links or imports the repository.
 
@@ -37,6 +37,8 @@ All variables below are server-only. None may use a `NEXT_PUBLIC_` prefix or be 
 | `GEMMA_API_KEY` | When mock is false | Sandbox key | Production key | Authorization for Gemma; send only from the server adapter |
 | `GEMMA_API_TIMEOUT_MS` | Yes | `45000` | `45000` initially | Adapter timeout; must be shorter than the route duration |
 | `GEMMA_USE_MOCK` | Yes | `true` until sandbox is ready | `false` | Explicitly selects deterministic fixture data |
+| `RECIPE_SEARCH_PROVIDER` | Yes | `mealdb` | `mealdb` initially | Select `mealdb` for the zero-card provider or `google` when grounding quota exists |
+| `MEALDB_API_KEY` | For MealDB | `1` | Supporter key before public launch | TheMealDB V1 key; `1` is documented for development/education |
 | `RECIPE_SEARCH_API_URL` | No | Omit or Gemini base | Omit or Gemini base | Optional base override; default is `https://generativelanguage.googleapis.com/v1beta` |
 | `RECIPE_SEARCH_API_KEY` | When mock is false | Dedicated Preview key | Production key | Gemini API key, sent only as `x-goog-api-key` |
 | `RECIPE_SEARCH_MODEL` | No | `gemini-3.6-flash` | `gemini-3.6-flash` | Optional model override; selected model must support Google Search grounding and have project quota |
@@ -45,7 +47,7 @@ All variables below are server-only. None may use a `NEXT_PUBLIC_` prefix or be 
 
 Once adapters are connected, validate this contract on the server with a small schema. Parse booleans and positive integer timeouts explicitly; the strings `"false"` and `"0"` are truthy in JavaScript. A landing-only preview does not need working model credentials. A release advertised as a functioning live cooking app must use live providers and must not silently fall back to fixtures when credentials are absent.
 
-For Gemini live mode, fail configuration when `RECIPE_SEARCH_API_KEY` is absent. Omitting `RECIPE_SEARCH_API_URL` or `RECIPE_SEARCH_MODEL` should select the hard-coded official defaults; if the base URL is set in Production, validate it as HTTPS and restrict it to the expected Google host unless an intentional provider migration is underway. Validate the model as a conservative identifier, not a free-form URL/path. `RECIPE_SEARCH_USE_MOCK=true` may select deterministic fixtures only when `/api/recipes` explicitly requests mock mode. It must never activate because Gemini is unavailable, times out, returns `429`, or lacks a key.
+MealDB mode needs no secret for development; the documented key `1` is not a claim of production entitlement. Obtain a supporter key before a public production launch. Google mode must fail configuration when `RECIPE_SEARCH_API_KEY` is absent. Omitting its URL/model selects the hard-coded official defaults. Fixtures must never activate because a live provider is unavailable, times out, returns `429`, or lacks a key.
 
 Configure values in **Project Settings → Environment Variables** for Preview and Production separately. Environment changes apply only to subsequent deployments, so redeploy after every change. For local work, copy `.env.example` to the ignored `.env.local`, or link the project and pull Development values with `vercel env pull .env.local`.
 
@@ -74,7 +76,7 @@ References: [Vercel Function limits](https://vercel.com/docs/functions/limitatio
 
 ## Live recipe-search runtime
 
-The selected discovery provider is the Gemini API with Google Search grounding. The provider calls `models/{model}:generateContent` with `tools: [{ google_search: {} }]`, consumes only `candidates[].groundingMetadata.groundingChunks[].web.uri` as discovery URLs, and then retrieves a bounded set of original publisher pages for schema.org Recipe data. Model prose must never supply recipe facts, ingredients, ratings, or source metadata. The provider uses Node networking modules for DNS and redirect validation, so `POST /api/recipes` must use the Node.js runtime; it is not Edge-compatible.
+The default discovery provider is TheMealDB V1. It queries separate free cuisine and single-ingredient endpoints, combines up to four ingredient searches, retrieves bounded detail records, and omits records without an original publisher source. The optional Gemini provider remains available for projects with Search Grounding quota; it consumes only grounded URLs and retrieves publisher JSON-LD. Neither provider invents ratings or missing metadata.
 
 Start the route with:
 
@@ -207,10 +209,10 @@ Vercel automatically provisions TLS after DNS verification. See [Vercel custom-d
 ## Known integration risks
 
 - The external Gemma endpoint's region, authentication scheme, maximum request size, accepted HEIC behavior, timeout, concurrency, and whether it accepts object references are not yet known.
-- Gemini Google Search grounding is selected, but a working Google AI project/key, billing/quota, Vercel environment configuration, grounding entry-point UI, publisher success rate, and production latency have not been validated in this task.
+- TheMealDB key `1` is documented for development/education; a public production launch should obtain a supporter key. Its free V1 data lacks ratings, total time, equipment, and multi-ingredient filtering in one request.
 - Gemini grounding returns discovery URLs, not normalized Recipe records. Model prose is deliberately ignored; publisher HTML remains untrusted and inconsistent, and up to 10 page fetches can dominate latency even when `generateContent` is fast.
 - The live provider's source-image hosts and any publisher-specific attribution requirements are not yet known, so `next/image` allowlists and final attribution UI cannot be finalized.
 - Five camera originals will normally exceed Vercel's function body limit; client compression or direct private upload is mandatory, not an optimization.
-- The landing and recipe builds are verified; analysis and health routes are still missing. Local Google search is currently quota-blocked. A successful build alone does not demonstrate working Gemma analysis or live recipe retrieval.
+- The landing and recipe builds plus a live TheMealDB request are verified; analysis and health routes are still missing. Optional Google search remains quota-blocked. This does not demonstrate working Gemma analysis.
 
 Framework references: [Next.js 16 runtime requirements](https://nextjs.org/docs/app/guides/upgrading/version-16) and [Vercel Node.js 24 availability](https://vercel.com/changelog/node-js-24-lts-is-now-generally-available-for-builds-and-functions).
