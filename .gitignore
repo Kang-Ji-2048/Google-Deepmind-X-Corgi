@@ -1,0 +1,4 @@
+# Local and Vercel-generated configuration may contain secrets.
+.env*
+!.env.example
+.vercel

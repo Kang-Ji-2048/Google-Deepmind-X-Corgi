@@ -12,6 +12,7 @@ Last updated: 2026-09-17
 | Visual system and screen specification | Parallel design track | In progress |
 | Online recipe discovery and ranking | Parallel search track | In progress |
 | Gemma image and ingredient extraction | External integration owner | External dependency |
+| Vercel hosting and deployment readiness | This repo | Contract and runbook ready; app scaffold pending |
 | End-to-end integration and QA | This repo | Pending |
 
 ## Task coordination
@@ -141,3 +142,19 @@ Candidates are hard-filtered for allergies and dietary restrictions, then ranked
 ## Local development
 
 Setup commands will be added as soon as the application scaffold lands.
+
+Copy [`.env.example`](.env.example) to `.env.local` after the scaffold lands and fill in the server-only integration values. Never commit `.env.local`.
+
+## Hosting
+
+Vercel is the target host. The scaffold-independent deployment contract, environment matrix, image-upload limits, privacy rules, health-check contract, domain steps, and release checklist are in [`docs/deployment.md`](docs/deployment.md).
+
+Hosting status: **configuration contract ready; not yet deployable**. There is no Next.js application or `package.json` in the repository yet, so no Vercel project has been imported and no build can be validated.
+
+Exact next actions after the application scaffold lands:
+
+1. Confirm the Next.js 16 App Router scaffold's `npm run build` succeeds locally and that `package.json` pins Node.js `24.x` in `engines` (or documents another intentionally selected Vercel-supported major).
+2. Implement the server-only provider adapters using the variable names in `.env.example`; do not expose provider keys through `NEXT_PUBLIC_*` variables.
+3. Implement `GET /api/health` and enforce the documented upload limits before invoking Gemma.
+4. Import the Git repository into Vercel with the framework preset set to Next.js and the repository root as the Root Directory.
+5. Configure separate Preview and Production secrets, deploy Preview, run the predeploy checklist, and only then promote to Production.
