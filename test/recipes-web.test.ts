@@ -85,6 +85,22 @@ test("rejects missing Gemini credentials and non-Google API endpoints", () => {
   }), /official generativelanguage/);
 });
 
+test("applies one overall deadline to a slow Google response body", async () => {
+  const neverEndingBody = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('{"candidates":['));
+    }
+  });
+  const provider = new GeminiGroundedRecipeProvider({
+    apiKey: "secret",
+    operationTimeoutMs: 20,
+    timeoutMs: 1_000,
+    fetch: async () => new Response(neverEndingBody, { status: 200 })
+  });
+  await assert.rejects(() => provider.search({ ingredients: ["tomato"], constraints: {} }),
+    (error: unknown) => error instanceof Error && /time|abort/i.test(`${error.name} ${error.message}`));
+});
+
 test("extracts valid Recipe JSON-LD while ignoring malformed blocks", () => {
   const document = extractRecipeJsonLd(`
     <script type="application/ld+json">not json</script>
@@ -111,6 +127,14 @@ test("publisher retrieval blocks private DNS answers and unsafe redirects", asyn
     resolveHost: async () => [{ address: "8.8.8.8", family: 4 }],
     request: async () => raw(302, { location: "https://localhost/admin" })
   }), /host is not allowed/);
+});
+
+test("publisher retrieval aborts while DNS resolution is still pending", async () => {
+  await assert.rejects(() => safeFetchPublisherHtml("https://publisher.example/recipe", {
+    signal: AbortSignal.timeout(20),
+    resolveHost: async () => new Promise(() => {}),
+    request: async () => raw(200, { "content-type": "text/html" })
+  }), (error: unknown) => error instanceof Error && /time|abort/i.test(`${error.name} ${error.message}`));
 });
 
 test("public IP classification rejects private and documentation networks", () => {

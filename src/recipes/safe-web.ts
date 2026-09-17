@@ -20,7 +20,7 @@ export interface RawWebResponse {
 export type PinnedRequest = (
   url: URL,
   address: ResolvedAddress,
-  options: { timeoutMs: number; maxResponseBytes: number }
+  options: { timeoutMs: number; maxResponseBytes: number; signal?: AbortSignal }
 ) => Promise<RawWebResponse>;
 
 export interface SafeHtmlFetchOptions {
@@ -29,6 +29,7 @@ export interface SafeHtmlFetchOptions {
   maxRedirects?: number;
   resolveHost?: HostResolver;
   request?: PinnedRequest;
+  signal?: AbortSignal;
 }
 
 const BLOCKED = new BlockList();
@@ -95,10 +96,35 @@ const defaultPinnedRequest: PinnedRequest = (url, resolved, options) => new Prom
     }));
     response.on("error", reject);
   });
-  request.setTimeout(options.timeoutMs, () => request.destroy(new Error("Publisher request timed out")));
   request.on("error", reject);
+  request.setTimeout(options.timeoutMs, () => request.destroy(new Error("Publisher request timed out")));
+  const onAbort = () => request.destroy(options.signal?.reason instanceof Error
+    ? options.signal.reason
+    : new DOMException("Publisher request aborted", "AbortError"));
+  if (options.signal?.aborted) onAbort();
+  else options.signal?.addEventListener("abort", onAbort, { once: true });
+  request.on("close", () => options.signal?.removeEventListener("abort", onAbort));
   request.end();
 });
+
+async function withAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) throw signal.reason;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      }
+    );
+  });
+}
 
 function validatePublisherUrl(value: string | URL): URL {
   const url = value instanceof URL ? new URL(value) : new URL(value);
@@ -124,13 +150,17 @@ export async function safeFetchPublisherHtml(
   const visited = new Set<string>();
 
   for (let redirects = 0; redirects <= maxRedirects; redirects += 1) {
+    options.signal?.throwIfAborted();
     if (visited.has(current.href)) throw new Error("Publisher redirect loop detected");
     visited.add(current.href);
-    const addresses = await resolver(current.hostname);
+    const addresses = await withAbort(resolver(current.hostname), options.signal);
     if (addresses.length === 0 || addresses.some(({ address }) => !isPublicIpAddress(address))) {
       throw new Error("Publisher host did not resolve exclusively to public IP addresses");
     }
-    const response = await request(current, addresses[0], { timeoutMs, maxResponseBytes });
+    const response = await withAbort(
+      request(current, addresses[0], { timeoutMs, maxResponseBytes, signal: options.signal }),
+      options.signal
+    );
     if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
       const location = Array.isArray(response.headers.location)
         ? response.headers.location[0]

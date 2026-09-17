@@ -14,6 +14,7 @@ export interface GeminiGroundedRecipeProviderOptions {
   apiBaseUrl?: string;
   model?: string;
   timeoutMs?: number;
+  operationTimeoutMs?: number;
   maxResponseBytes?: number;
   maxPages?: number;
   maxRedirects?: number;
@@ -21,6 +22,7 @@ export interface GeminiGroundedRecipeProviderOptions {
   fetch?: Fetch;
   resolveHost?: HostResolver;
   publisherRequest?: PinnedRequest;
+  signal?: AbortSignal;
 }
 
 type JsonObject = Record<string, unknown>;
@@ -66,7 +68,7 @@ function buildDiscoveryPrompt(query: RecipeProviderQuery): string {
   ].filter(Boolean).join(" ").slice(0, 2_000);
 }
 
-async function readBoundedResponse(response: Response, maxBytes: number): Promise<Uint8Array> {
+async function readBoundedResponse(response: Response, maxBytes: number, signal: AbortSignal): Promise<Uint8Array> {
   const announced = Number(response.headers.get("content-length") ?? 0);
   if (announced > maxBytes) throw new Error("Google grounding response exceeds the byte limit");
   if (!response.body) return new Uint8Array();
@@ -74,7 +76,21 @@ async function readBoundedResponse(response: Response, maxBytes: number): Promis
   const chunks: Uint8Array[] = [];
   let total = 0;
   while (true) {
-    const { value, done } = await reader.read();
+    signal.throwIfAborted();
+    const { value, done } = await new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+      const onAbort = () => reject(signal.reason);
+      signal.addEventListener("abort", onAbort, { once: true });
+      reader.read().then(
+        (result) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(result);
+        },
+        (error) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        }
+      );
+    });
     if (done) break;
     total += value.byteLength;
     if (total > maxBytes) {
@@ -111,7 +127,7 @@ export function extractRecipeJsonLd(html: string, sourceUrl: string): RecipeSour
 export class GeminiGroundedRecipeProvider implements RecipeProvider {
   readonly name = "google-grounded-web";
   private readonly options: Required<Pick<GeminiGroundedRecipeProviderOptions,
-    "apiBaseUrl" | "model" | "timeoutMs" | "maxResponseBytes" | "maxPages" | "maxRedirects" | "concurrency">> &
+    "apiBaseUrl" | "model" | "timeoutMs" | "operationTimeoutMs" | "maxResponseBytes" | "maxPages" | "maxRedirects" | "concurrency">> &
     GeminiGroundedRecipeProviderOptions;
   private attribution?: RecipeProviderAttribution;
 
@@ -128,6 +144,7 @@ export class GeminiGroundedRecipeProvider implements RecipeProvider {
       apiBaseUrl: apiBaseUrl.href.replace(/\/$/, ""),
       model,
       timeoutMs: options.timeoutMs ?? 10_000,
+      operationTimeoutMs: options.operationTimeoutMs ?? 45_000,
       maxResponseBytes: options.maxResponseBytes ?? 1_048_576,
       maxPages: Math.min(Math.max(options.maxPages ?? 10, 1), 10),
       maxRedirects: Math.min(Math.max(options.maxRedirects ?? 3, 0), 5),
@@ -141,15 +158,17 @@ export class GeminiGroundedRecipeProvider implements RecipeProvider {
 
   async search(query: RecipeProviderQuery): Promise<readonly RecipeSourceDocument[]> {
     this.attribution = undefined;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.options.timeoutMs);
-    let response: Response;
-    try {
-      response = await (this.options.fetch ?? fetch)(
+    const operationSignal = AbortSignal.any([
+      AbortSignal.timeout(this.options.operationTimeoutMs),
+      ...(this.options.signal ? [this.options.signal] : [])
+    ]);
+    operationSignal.throwIfAborted();
+    const googleSignal = AbortSignal.any([operationSignal, AbortSignal.timeout(this.options.timeoutMs)]);
+    const response = await (this.options.fetch ?? fetch)(
         `${this.options.apiBaseUrl}/models/${encodeURIComponent(this.options.model)}:generateContent`,
         {
           method: "POST",
-          signal: controller.signal,
+          signal: googleSignal,
           headers: {
             "Content-Type": "application/json",
             "x-goog-api-key": this.options.apiKey
@@ -160,10 +179,7 @@ export class GeminiGroundedRecipeProvider implements RecipeProvider {
           })
         }
       );
-    } finally {
-      clearTimeout(timer);
-    }
-    const bytes = await readBoundedResponse(response, this.options.maxResponseBytes);
+    const bytes = await readBoundedResponse(response, this.options.maxResponseBytes, googleSignal);
     const body = new TextDecoder().decode(bytes);
     if (!response.ok) throw new Error(`Gemini grounding request failed with HTTP ${response.status}`);
     let payload: unknown;
@@ -196,17 +212,20 @@ export class GeminiGroundedRecipeProvider implements RecipeProvider {
     let retrievalErrors = 0;
     const worker = async () => {
       while (cursor < selected.length) {
+        operationSignal.throwIfAborted();
         const index = cursor++;
         try {
           const page = await safeFetchPublisherHtml(selected[index].url, {
             timeoutMs: this.options.timeoutMs,
             maxResponseBytes: this.options.maxResponseBytes,
             maxRedirects: this.options.maxRedirects,
+            signal: operationSignal,
             ...(this.options.resolveHost ? { resolveHost: this.options.resolveHost } : {}),
             ...(this.options.publisherRequest ? { request: this.options.publisherRequest } : {})
           });
           documents[index] = extractRecipeJsonLd(page.html, page.finalUrl);
-        } catch {
+        } catch (error) {
+          if (operationSignal.aborted) throw error;
           retrievalErrors += 1;
           documents[index] = undefined;
         }
