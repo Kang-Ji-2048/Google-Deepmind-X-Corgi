@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/dm-sans";
-import "@fontsource-variable/manrope";
+import "@fontsource-variable/outfit";
+import "@fontsource-variable/jetbrains-mono";
 import "../src/styles.css";
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1447d8",
+  themeColor: "#011A16",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
